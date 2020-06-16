@@ -6,6 +6,7 @@ from gwtrigfind import find_trigger_files
 from gwpy.table import EventTable
 from gwpy.segments import DataQualityDict
 from gwpy.timeseries import TimeSeries
+from gwpy.frequencyseries import FrequencySeries
 import datetime
 from gwpy.time import tconvert
 from gwpy.time import from_gps
@@ -76,54 +77,126 @@ def removed_times(motion_file,motion_file_list):
 
 
 def compare_gds_l2(starttime_gds,starttime_l2,dur_gds,fft_gds,dur_l2,fft_l2,correction_factor=1.35,ref_c1=0.001,ref_c2=9e-5,ref_c3=9e-6):
-	
-	overlapgds = fft_gds/2
-	windowgds = dur_gds/2
-	overlapl2 = fft_l2/2
-	fac = 12.56/1.064
-	
-	t = TimeSeries.fetch('L1:GDS-CALIB_STRAIN_CLEAN',starttime_gds-windowgds,starttime_gds+windowgds).detrend().asd(fft_gds,overlapgds)	   
-	t_etmx = TimeSeries.fetch('L1:SUS-ETMX_L2_WIT_L_DQ',starttime_l2,starttime_l2+dur_l2).detrend()*correction_factor
-	
 
-	t_etmxsinsubzero = TimeSeries(np.sin((t_etmx*0.5*fac*t_etmx.unit).value), t0 = t_etmx.t0.value, dt = t_etmx.dt.value).detrend()
-	t_etmxsin = TimeSeries(np.sin((t_etmx*1*fac*t_etmx.unit).value), t0 = t_etmx.t0.value, dt = t_etmx.dt.value).detrend()
-	t_etmxsin1 = TimeSeries(np.sin((t_etmx*2*fac*t_etmx.unit).value), t0 = t_etmx.t0.value, dt = t_etmx.dt.value).detrend()
-	t_etmxsin2 = TimeSeries(np.sin((t_etmx*fac*3*t_etmx.unit).value), t0 = t_etmx.t0.value, dt = t_etmx.dt.value).detrend()
+        
+        overlapgds = fft_gds/2
+        windowgds = dur_gds/2
+        overlapl2 = fft_l2/2
+        fac = 12.56/1.064
+        
+        
+        ### TimeSeries of h(t) and L2 STAGE
+        t = TimeSeries.fetch('L1:GDS-CALIB_STRAIN_CLEAN',starttime_gds-windowgds,starttime_gds+windowgds).detrend().asd(fft_gds,overlapgds)  
+        t_etmx = TimeSeries.fetch('L1:SUS-ETMX_L2_WIT_L_DQ',starttime_l2,starttime_l2+dur_l2).detrend()*correction_factor
 
 
-	### Constants
-	Tr=4e-6    # transmissivity
-	lamda=1e-6   # wavelength
-	L = 4000    # arm length
-	#ref_c = 1e-3   # fraction of light incident on and reflected back from ESD's
-	finesse_fac = np.sqrt(2*443*np.pi)   ### finnesse factor
-
-	### calculating the noise in darm due to sus_motion
-	h_tetmx1 = (1/np.pi)*Tr*lamda*ref_c1*(0.125/L)*t_etmxsin.asd(fft_l2,overlapl2)
-	h_tetmx2 = (1/np.pi)*Tr*lamda*ref_c2*(0.125/L)*t_etmxsin1.asd(fft_l2,overlapl2)
-	h_tetmx3 = (1/np.pi)*Tr*lamda*ref_c3*(0.125/L)*t_etmxsin2.asd(fft_l2,overlapl2)
-
-	h_tetmxtot = h_tetmx1+h_tetmx2+h_tetmx3
-
-	### Comparing the noise in darm to noise in darm due to sus_motion
-	plt.figure(figsize=(16,8))
-	plt.plot(t,label='h(t)'.format(starttime_gds))
-	plt.plot(h_tetmxtot,label='from l2 motion'.format(starttime_l2))
-	plt.xlim(5,150)
-	plt.xticks(list(np.arange(10,150,10)),list(np.arange(10,150,10)),fontsize=21)
-	plt.yscale("log")
-	plt.ylim(0.2e-23,1e-17)
-	plt.yticks(fontsize=21)
-	plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=20)
-	plt.xlabel('Frequency [Hz]',fontsize=20)
-	plt.legend(loc='upper right',fontsize=20)
-	plt.title("L2 stage motion overlaid on h(t) spectra for scattering at {0}".format(starttime_gds),fontsize=22)
-	plt.show()
+       
+        #First harmonic
+        t_etmxsin = TimeSeries(np.sin((t_etmx*1*fac*t_etmx.unit).value), t0 = t_etmx.t0.value, dt = t_etmx.dt.value).detrend()
+        t_etmxcos = TimeSeries(np.cos((t_etmx*1*fac*t_etmx.unit).value), t0 = t_etmx.t0.value, dt = t_etmx.dt.value).detrend()
+        
+        # Second harmonic
+        t_etmxsin1 = TimeSeries(np.sin((t_etmx*2*fac*t_etmx.unit).value), t0 = t_etmx.t0.value, dt = t_etmx.dt.value).detrend()
+        t_etmxcos1 = TimeSeries(np.cos((t_etmx*2*fac*t_etmx.unit).value), t0 = t_etmx.t0.value, dt = t_etmx.dt.value).detrend()
+        
+        # Third harmonic
+        t_etmxsin2 = TimeSeries(np.sin((t_etmx*fac*3*t_etmx.unit).value), t0 = t_etmx.t0.value, dt = t_etmx.dt.value).detrend()
+        t_etmxcos2 = TimeSeries(np.cos((t_etmx*fac*3*t_etmx.unit).value), t0 = t_etmx.t0.value, dt = t_etmx.dt.value).detrend()
 
 
-	return
+        ### Parameters
+        Tr=4e-6     # transmissivity
+        lamda=1e-6  # wavelength
+        L = 4000    # arm length
+        c=3e8       # Speed of light
+        M=40*((2*np.pi)**2) # M*(2*pi)**2
+        P_arms=2e5  # Arm Power 
+        omega = 0.45   # Suspension Eigenfrequency
+        itm,srm = 0.0148,0.324   # tranmission
+        
+       
 
+        ### Phase noise
+        phase_1 = (1/np.pi)*Tr*lamda*ref_c1*(0.125/L)*t_etmxsin.asd(fft_l2,overlapl2)
+        phase_2 = (1/np.pi)*Tr*lamda*ref_c2*(0.125/L)*t_etmxsin1.asd(fft_l2,overlapl2)
+        phase_3 = (1/np.pi)*Tr*lamda*ref_c3*(0.125/L)*t_etmxsin2.asd(fft_l2,overlapl2)
+        
+        phase_sum = phase_1 + phase_2 + phase_3
+        
+
+        
+        ### Radiation Pressure
+        r_prime = (np.sqrt(1 - itm) - np.sqrt(1 - srm))/(1 - np.sqrt(1 - itm)*np.sqrt(1 - srm))
+        gamma =  (1 - r_prime )**-1     # Signal gain
+        rad_factor = (4*gamma*P_arms)/(M*c*L)
+        omeg_sq_f_sq = [omega**2 - i**2 for i in np.arange(0,128+1/fft_l2,1/fft_l2)]
+        one_over_f_sq = [i**-1 for i in omeg_sq_f_sq]
+        
+        transfer_func_rad = [rad_factor*i for i in one_over_f_sq] ## X_eff/RIN
+        rad_1 = transfer_func_rad*t_etmxcos.asd(fft_l2,overlapl2)*Tr*ref_c1
+        rad_2 = transfer_func_rad*t_etmxcos1.asd(fft_l2,overlapl2)*Tr*ref_c2
+        rad_3 = transfer_func_rad*t_etmxcos2.asd(fft_l2,overlapl2)*Tr*ref_c3
+        
+        rad_sum = rad_1 + rad_2 + rad_3
+        
+        
+        
+
+        ### Phase noise + Radiation pressure noise
+        ht_tot = np.add([i**2 for i in phase_sum.value],[j**2 for j in rad_sum.value]) ## (phase^2 + rad^2)
+        ht_tot = FrequencySeries((np.sqrt(ht_tot)*phase_sum.unit).value,f0=phase_sum.f0,
+                                 df=phase_sum.df,epoch=phase_sum.epoch)
+   
+        
+        
+        
+        
+        ### Comparing the noise in darm to noise in darm due to sus_motion (With Radiation Pressure)
+        plt.figure(figsize=(16,8))
+        plt.plot(t,label='h(t)')
+        plt.plot(phase_sum,label='phase noise')
+        plt.xlim(5,150)
+        plt.xticks(list(np.arange(10,150,10)),list(np.arange(10,150,10)),fontsize=26)
+        plt.yscale("log")
+        plt.ylim(1e-25,1e-17)
+        plt.yticks(fontsize=26)
+        plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=20)
+        plt.xlabel('Frequency [Hz]',fontsize=20)
+        plt.legend(loc='upper right',fontsize=20)
+        plt.title("L2 stage motion overlaid on h(t) spectra for scattering at {0}".format(starttime_gds),fontsize=22)
+        plt.show()
+        
+         ### Comparing the noise in darm to noise in darm due to sus_motion (With Radiation Pressure)
+        plt.figure(figsize=(16,8))
+        plt.plot(t,label='h(t)')
+        plt.plot(np.abs(rad_sum),label='radiation pressure')
+        plt.xlim(5,150)
+        plt.xticks(list(np.arange(10,150,10)),list(np.arange(10,150,10)),fontsize=26)
+        plt.yscale("log")
+        plt.ylim(1e-25,1e-17)
+        plt.yticks(fontsize=26)
+        plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=20)
+        plt.xlabel('Frequency [Hz]',fontsize=20)
+        plt.legend(loc='upper right',fontsize=20)
+        plt.title("L2 stage motion overlaid on h(t) spectra for scattering at {0}".format(starttime_gds),fontsize=22)
+        plt.show()
+        
+        plt.figure(figsize=(16,8))
+        plt.plot(t,label='h(t)')
+        plt.plot(ht_tot,label='phase + radiation')
+        #plt.plot(h_ttot,label='from l2 motion with rad pressure')
+        plt.xlim(5,150)
+        plt.xticks(list(np.arange(10,150,10)),list(np.arange(10,150,10)),fontsize=26)
+        plt.yscale("log")
+        plt.ylim(1e-25,1e-17)
+        plt.yticks(fontsize=26)
+        plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=20)
+        plt.xlabel('Frequency [Hz]',fontsize=20)
+        plt.legend(loc='upper right',fontsize=20)
+        plt.title("L2 stage motion overlaid on h(t) spectra for scattering at {0}".format(starttime_gds),fontsize=22)
+        plt.show()
+
+        return
 
 def plot_asdgds(gpstime1,dur1,gpstime2,dur2,fft):
     
@@ -142,14 +215,14 @@ def plot_asdgds(gpstime1,dur1,gpstime2,dur2,fft):
     plt.xscale("log")
     plt.xlim(5,1000)
     plt.grid(True,which='both')
-    plt.xticks(fontsize=20)
-    plt.yticks(fontsize=20)
+    plt.xticks(fontsize=24)
+    plt.yticks(fontsize=24)
     plt.ylim(10e-25,1e-17)
     
     #plt.xticks()
-    plt.ylabel('ASD  [1/$\sqrt{Hz}$]',fontsize=20)
-    plt.xlabel('Frequency (Hz)',fontsize=20)
-    plt.title("Spectrum:L1:GDS-CALIB_STRAIN_CLEAN",fontsize=20)
+    plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=26)
+    plt.xlabel('Frequency (Hz)',fontsize=26)
+    plt.title("Spectrum:L1:GDS-CALIB_STRAIN_CLEAN",fontsize=26)
     plt.legend(fontsize=18)
     plt.show()
 
@@ -174,10 +247,12 @@ def compare_transmons(gpstime,dur,fft):
    # plt.figure(figsize=(16,8))
     plt.plot(tasd,label='scattering')
     plt.xlim(5,50)
+    plt.ylim(1e-9,1e-3)
     plt.plot(tnonasd,label='non scattering June 23')
     plt.xlim(5,50)
-    plt.xticks([i for i in [5,10,20,30,40,50]],[i for i in [5,10,20,30,40,50]],fontsize=12)
-    plt.yticks(fontsize=12)
+    plt.ylim(1e-9,1e-3)
+    plt.xticks([i for i in [5,10,20,30,40,50]],[i for i in [5,10,20,30,40,50]],fontsize=16)
+    plt.yticks(fontsize=16)
     plt.yscale('log')
     plt.ylabel('RIN')
     plt.title("X end PD  gpstime {1}".format(fft,gpstime))
@@ -189,8 +264,8 @@ def compare_transmons(gpstime,dur,fft):
     plt.xlim(5,50)
     plt.plot(tgdsnonscatasd,label='non scattering June 23')
     plt.xlim(5,50)
-    plt.xticks([i for i in [5,10,20,30,40,50]],[i for i in [5,10,20,30,40,50]],fontsize=12)
-    plt.yticks(fontsize=12)
+    plt.xticks([i for i in [5,10,20,30,40,50]],[i for i in [5,10,20,30,40,50]],fontsize=16)
+    plt.yticks(fontsize=16)
     #plt.xscale("log")
     plt.yscale("log")
     plt.ylim(0.2e-23,1e-17)
