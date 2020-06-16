@@ -116,7 +116,22 @@ def compare_gds_l2(starttime_gds,starttime_l2,dur_gds,fft_gds,dur_l2,fft_l2,corr
         
        
 
-        ### Phase noise
+	### Comparing the noise in darm to noise in darm due to sus_motion
+	plt.figure(figsize=(16,8))
+	plt.plot(t,label='h(t)'.format(starttime_gds))
+	plt.plot(h_tetmxtot,label='from l2 motion'.format(starttime_l2))
+	plt.xlim(5,150)
+	plt.xticks(list(np.arange(10,150,10)),list(np.arange(10,150,10)),fontsize=26)
+	plt.yscale("log")
+	plt.ylim(0.2e-23,1e-17)
+	plt.yticks(fontsize=26)
+	plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=20)
+	plt.xlabel('Frequency [Hz]',fontsize=20)
+	plt.legend(loc='upper right',fontsize=20)
+	plt.title("L2 stage motion overlaid on h(t) spectra for scattering at {0}".format(starttime_gds),fontsize=22)
+	plt.show()
+        
+	### Phase noise
         phase_1 = (1/np.pi)*Tr*lamda*ref_c1*(0.125/L)*t_etmxsin.asd(fft_l2,overlapl2)
         phase_2 = (1/np.pi)*Tr*lamda*ref_c2*(0.125/L)*t_etmxsin1.asd(fft_l2,overlapl2)
         phase_3 = (1/np.pi)*Tr*lamda*ref_c3*(0.125/L)*t_etmxsin2.asd(fft_l2,overlapl2)
