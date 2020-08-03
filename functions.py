@@ -88,7 +88,7 @@ def compare_gds_l2(starttime_gds,starttime_l2,dur_gds,fft_gds,dur_l2,fft_l2,corr
         ### TimeSeries of h(t) and L2 STAGE
         t = TimeSeries.fetch('L1:GDS-CALIB_STRAIN_CLEAN',starttime_gds-windowgds,starttime_gds+windowgds).detrend().asd(fft_gds,overlapgds)  
         t_etmx = TimeSeries.fetch('L1:SUS-ETMX_L2_WIT_L_DQ',starttime_l2,starttime_l2+dur_l2).detrend()*correction_factor
-
+        t_quiet = TimeSeries.fetch('L1:GDS-CALIB_STRAIN_CLEAN',1245294018-windowgds,1245294018+windowgds).detrend().asd(fft_gds,overlapgds)
 
        
         #First harmonic
@@ -153,12 +153,14 @@ def compare_gds_l2(starttime_gds,starttime_l2,dur_gds,fft_gds,dur_l2,fft_l2,corr
         
         ### Comparing the noise in darm to noise in darm due to sus_motion (With Radiation Pressure)
         plt.figure(figsize=(16,8))
-        plt.plot(t,label='h(t)')
+        plt.plot(t,label='h(t) scattering')
         plt.plot(phase_sum,label='phase noise')
+        plt.plot(t_quiet,label='h(t) quiet')
         plt.xlim(5,150)
         plt.xticks(list(np.arange(10,150,10)),list(np.arange(10,150,10)),fontsize=26)
         plt.yscale("log")
-        plt.ylim(1e-25,1e-17)
+        plt.ylim(1e-24,1e-17)
+        plt.grid(True,which='both')
         plt.yticks(fontsize=26)
         plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=20)
         plt.xlabel('Frequency [Hz]',fontsize=20)
@@ -168,12 +170,14 @@ def compare_gds_l2(starttime_gds,starttime_l2,dur_gds,fft_gds,dur_l2,fft_l2,corr
         
          ### Comparing the noise in darm to noise in darm due to sus_motion (With Radiation Pressure)
         plt.figure(figsize=(16,8))
-        plt.plot(t,label='h(t)')
+        plt.plot(t,label='h(t) scattering')
         plt.plot(np.abs(rad_sum),label='radiation pressure')
+        plt.plot(t_quiet, label='h(t) quiet')
         plt.xlim(5,150)
         plt.xticks(list(np.arange(10,150,10)),list(np.arange(10,150,10)),fontsize=26)
         plt.yscale("log")
-        plt.ylim(1e-25,1e-17)
+        plt.grid(True,which='both')
+        plt.ylim(1e-24,1e-17)
         plt.yticks(fontsize=26)
         plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=20)
         plt.xlabel('Frequency [Hz]',fontsize=20)
@@ -182,17 +186,19 @@ def compare_gds_l2(starttime_gds,starttime_l2,dur_gds,fft_gds,dur_l2,fft_l2,corr
         plt.show()
         
         plt.figure(figsize=(16,8))
-        plt.plot(t,label='h(t)')
+        plt.plot(t,label='h(t) scattering')
         plt.plot(ht_tot,label='phase + radiation')
+        plt.plot(t_quiet, color='black', label = 'h(t) quiet')
         plt.xlim(5,150)
         plt.xticks(list(np.arange(10,150,10)),list(np.arange(10,150,10)),fontsize=26)
         plt.yscale("log")
-        plt.ylim(1e-25,1e-17)
+        plt.ylim(1e-24,1e-17)
+        plt.grid(True,which='both')
         plt.yticks(fontsize=26)
-        plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=20)
-        plt.xlabel('Frequency [Hz]',fontsize=20)
-        plt.legend(loc='upper right',fontsize=20)
-        plt.title("L2 stage motion overlaid on h(t) spectra for scattering at {0}".format(starttime_gds),fontsize=22)
+        plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=22)
+        plt.xlabel('Frequency [Hz]',fontsize=22)
+        plt.legend(loc='upper right',fontsize=26)
+        #plt.title("L2 stage motion overlaid on h(t) spectra for scattering at {0}".format(starttime_gds),fontsize=22)
         plt.show()
 
         return
@@ -208,8 +214,8 @@ def plot_asdgds(gpstime1,dur1,gpstime2,dur2,fft):
     gds_ref = TimeSeries.fetch('L1:GDS-CALIB_STRAIN_CLEAN',t2,t2+dur2).detrend().asd(fft,overlap)
     
     plt.figure(figsize=(16,8))
-    plt.plot(gds,label='{0}'.format(gpstime1))
-    plt.plot(gds_ref,label='{0}'.format(gpstime2))
+    plt.plot(gds,linewidth=3,label='{0}'.format(gpstime1))
+    plt.plot(gds_ref,linewidth=3,color='black',label='{0}'.format(gpstime2))
     plt.yscale("log")
     plt.xscale("log")
     plt.xlim(5,1000)
@@ -221,7 +227,7 @@ def plot_asdgds(gpstime1,dur1,gpstime2,dur2,fft):
     #plt.xticks()
     plt.ylabel('GW Amplitude Spectral Density [strain / $\sqrt{Hz}$]',fontsize=26)
     plt.xlabel('Frequency (Hz)',fontsize=26)
-    plt.title("Spectrum:L1:GDS-CALIB_STRAIN_CLEAN",fontsize=26)
+    #plt.title("Spectrum:L1:GDS-CALIB_STRAIN_CLEAN",fontsize=26)
     plt.legend(fontsize=18)
     plt.show()
 
